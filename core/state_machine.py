@@ -4,7 +4,7 @@ Defines the core operational states and state machine logic for BlackEye.
 """
 
 from enum import Enum, auto
-from typing import final
+
 
 class SystemState(Enum):
 ##Represents the operational states of BlackEye
