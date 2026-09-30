@@ -8,3 +8,56 @@
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
+
+# ==============================================================================
+# ENVIRONMENT CONFIGURATION
+# ==============================================================================
+.env
+*.env
+*.key
+*.pem
+credentials.json
+token.json
+
+# ==============================================================================
+# TEMPORARY STORAGE, VIDEO BUFFER & LOGS
+# ==============================================================================
+# Lokale opnames en RAM-buffer dumps
+recordings/
+buffer/
+/dev/shm/
+*.mp4
+*.h264
+*.mkv
+*.jpg
+*.jpeg
+*.png
+
+# Logbestanden
+logs/
+*.log
+
+# ==============================================================================
+# PYTHON RUNTIMES & BYTECODE CACHE
+# ==============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# ==============================================================================
+# IDE & OS METADATA
+# ==============================================================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
