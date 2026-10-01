@@ -23,11 +23,42 @@ class StateMachine:
         if not isinstance(initial_state, SystemState):
             raise TypeError("initial_state must be an instance of SystemState")
 
-        self._currrent_state: SystemState = initial_state
-        logging.info(f"State machine initialised in state:{self._currrent_state.name}")
+        self._current_state: SystemState = initial_state
+        logging.info(f"State machine initialised in state:{self._current_state.name}")
 
 
     @property
     def current_state(self) -> SystemState:
         #getter for the current state
-        return self._currrent_state
+        return self._current_state
+
+
+    def transition_to(self, new_state: SystemState) -> bool:
+        #guard clause for valid state
+        if not isinstance(new_state, SystemState):
+            raise TypeError("new_state must be an instance of SystemState")
+
+        # guard for when already in the state that is requested
+        if self.current_state == new_state:
+            logging.warning(f"State transition ignored: already in {new_state.name}")
+            return False
+
+        ## Permitted transition map
+        valid_transitions = {
+            SystemState.DISARMED: {SystemState.ARMED},
+            SystemState.ARMED: {SystemState.DISARMED, SystemState.RECORDING},
+            SystemState.RECORDING: {SystemState.DISARMED, SystemState.ALERTING},
+            SystemState.ALERTING: {SystemState.ARMED, SystemState.DISARMED},
+        }
+
+        ## gaurd clause to see if its permitted
+        allowed = valid_transitions.get(self._current_state, set())
+        if new_state not in allowed:
+            logging.error(f"Illegal state transition: {self._current_state.name} -> {new_state.name}")
+            return False
+
+        ## Update state
+        previous_state = self._current_state
+        self._current_state = new_state
+        logging.info(f"State machine transitioned from {previous_state} to {new_state.name}")
+        return True
