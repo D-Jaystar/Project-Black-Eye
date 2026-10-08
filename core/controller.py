@@ -1,0 +1,34 @@
+## core/controller.py
+## Links hardware triggers to state transitions.
+
+import logging
+from core.state_machine import StateMachine, SystemState
+from detector.pir_sensor import PirMotionDetector
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+
+class Controller:
+    ## Orchestrates state transitions and manages sensory hardware interfaces.
+
+    def __init__(self, state_machine: StateMachine, pir_pin: int = 17) -> None:
+        ## Guard Clause: Validate state machine instance
+        if not isinstance(state_machine, StateMachine):
+            raise TypeError("state_machine must be an instance of StateMachine")
+
+        self._state_machine: StateMachine = state_machine
+        self._detector: PirMotionDetector = PirMotionDetector(
+            pin=pir_pin,
+            on_motion_callback=self._handle_motion_detected
+        )
+
+        logging.info("Controller initialized")
+
+    def _handle_motion_detected(self) -> None:
+        ## Guard Clause: Only transition if system is strictly ARMED
+        if self._state_machine.current_state != SystemState.ARMED:
+            logging.info(f"Motion ignored: system is in {self._state_machine.current_state.name} state.")
+            return
+
+        logging.info("Motion Detected while ARMED. Initializing Transition.")
+        self._state_machine.transition_to(SystemState.RECORDING)
