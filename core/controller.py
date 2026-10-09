@@ -32,3 +32,28 @@ class Controller:
 
         logging.info("Motion Detected while ARMED. Initializing Transition.")
         self._state_machine.transition_to(SystemState.RECORDING)
+
+    def arm(self) -> bool:
+        if not self._state_machine.transition_to(SystemState.ARMED):
+            logging.warning("Failed to arm system: Transition rejected.")
+            return False
+
+        self._detector.start()
+        logging.info("System armed. MotionDetection on")
+        return True
+
+
+    def disarm(self) -> bool:
+
+        self._detector.stop()
+
+        if not self._state_machine.transition_to(SystemState.DISARMED):
+            logging.warning("Failed to disarm system: Transition rejected.")
+            return False
+
+        logging.info("System disarmed. MotionDetection off")
+        return True
+
+    def shutdown(self) -> bool:
+        logging.info("Shutting down system.")
+        return self.disarm()
