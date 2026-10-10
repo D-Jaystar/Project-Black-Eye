@@ -5,7 +5,7 @@ import logging
 from core.state_machine import StateMachine, SystemState
 from detector.pir_sensor import PirMotionDetector
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
 
 
 class Controller:
@@ -44,13 +44,12 @@ class Controller:
 
 
     def disarm(self) -> bool:
-
-        self._detector.stop()
-
+        ## Guard Clause: only stop detector after a successful state transition
         if not self._state_machine.transition_to(SystemState.DISARMED):
             logging.warning("Failed to disarm system: Transition rejected.")
             return False
 
+        self._detector.stop()
         logging.info("System disarmed. MotionDetection off")
         return True
 

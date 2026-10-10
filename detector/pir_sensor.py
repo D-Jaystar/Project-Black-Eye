@@ -41,7 +41,7 @@ class PirMotionDetector:
 
 
     def start(self) -> None:
-    ## handler
+        ## Activate sensor and bind interrupt callbacks
         if self._is_running:
             logging.info(f"[info] PirMotionDetector already running")
             return
@@ -50,7 +50,7 @@ class PirMotionDetector:
         self._sensor.when_activated = self._on_motion_callback
 
         if self._off_motion_callback is not None:
-            self._sensor.when_deactivated =  self._off_motion_callback()
+            self._sensor.when_deactivated = self._off_motion_callback
 
         self._is_running = True
         logging.info(f"[info] PirMotionDetector started on gpio pin {self._pin}")

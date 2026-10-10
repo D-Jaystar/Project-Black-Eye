@@ -6,14 +6,14 @@ Defines the core operational states and state machine logic for BlackEye.
 from enum import Enum, auto
 import logging
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+
 
 class SystemState(Enum):
-##Represents the operational states of BlackEye
-    DISARMED = auto() #Standby: system off
-    ARMED = auto()    #Surveillance active
-    RECORDING = auto()#Motion detected, video and audio on
-    ALERTING = auto() # Capture finished alerting owner
+    ## Represents the operational states of BlackEye
+    DISARMED = auto() ## Standby: system off
+    ARMED = auto()    ## Surveillance active
+    RECORDING = auto()## Motion detected, video and audio on
+    ALERTING = auto() ## Capture finished, alerting owner
 
 class StateMachine:
     ## State Tracker controlling transitions
@@ -60,5 +60,5 @@ class StateMachine:
         ## Update state
         previous_state = self._current_state
         self._current_state = new_state
-        logging.info(f"State machine transitioned from {previous_state} to {new_state.name}")
+        logging.info(f"State machine transitioned from {previous_state.name} to {new_state.name}")
         return True
