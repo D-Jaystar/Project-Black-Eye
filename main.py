@@ -3,11 +3,13 @@
 
 import logging
 import signal
+from datetime import datetime
 
 from config import settings
 from core.state_machine import StateMachine
 from core.controller import Controller
 from capture.audio_recorder import AudioRecorder
+from capture.video_recorder import VideoRecorder
 
 ## Configure logging once, here, for the entire application
 logging.basicConfig(
@@ -16,12 +18,16 @@ logging.basicConfig(
 )
 
 
+def _build_output_path(template: str) -> str:
+    ## Resolve filename template by injecting the current timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = template.format(timestamp=timestamp)
+    return str(settings.RECORDINGS_DIR / filename)
+
+
 def main() -> None:
     ## Ensure the recordings directory exists before any session starts
     settings.RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
-
-    ## Build the audio output path from settings
-    recording_path = str(settings.RECORDINGS_DIR / settings.AUDIO_FILENAME_TEMPLATE)
 
     ## Wire up the dependency graph
     state_machine = StateMachine()
@@ -29,11 +35,18 @@ def main() -> None:
         sample_rate=settings.AUDIO_SAMPLE_RATE,
         channels=settings.AUDIO_CHANNELS,
     )
+    video_recorder = VideoRecorder(
+        width=settings.VIDEO_WIDTH,
+        height=settings.VIDEO_HEIGHT,
+        framerate=settings.VIDEO_FRAMERATE,
+    )
     controller = Controller(
         state_machine=state_machine,
         audio_recorder=audio_recorder,
+        video_recorder=video_recorder,
         pir_pin=settings.PIR_GPIO_PIN,
-        recording_output_path=recording_path,
+        audio_output_path=_build_output_path(settings.AUDIO_FILENAME_TEMPLATE),
+        video_output_path=_build_output_path(settings.VIDEO_FILENAME_TEMPLATE),
     )
 
     ## Arm the system on startup

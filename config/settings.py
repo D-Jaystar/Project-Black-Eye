@@ -17,6 +17,15 @@ AUDIO_SAMPLE_RATE: int = 44100
 ## 1 = mono (sufficient for surveillance audio), 2 = stereo
 AUDIO_CHANNELS: int = 1
 
+## ── Video ────────────────────────────────────────────────────────────────────
+
+## Camera capture resolution
+VIDEO_WIDTH: int = 1280
+VIDEO_HEIGHT: int = 720
+
+## Frames per second for the H.264 encoder
+VIDEO_FRAMERATE: int = 30
+
 ## ── Storage ──────────────────────────────────────────────────────────────────
 
 ## Root directory where all capture sessions are saved
