@@ -7,19 +7,22 @@ from core.state_machine import StateMachine, SystemState
 from detector.pir_sensor import PirMotionDetector
 from capture.audio_recorder import AudioRecorder
 from capture.video_recorder import VideoRecorder
+from capture.media_muxer import MediaMuxer
 
 
 class Controller:
-    ## Orchestrates state transitions, sensor input, and audio+video capture lifecycle.
+    ## Orchestrates state transitions, sensor input, audio+video capture, and muxing lifecycle.
 
     def __init__(
         self,
         state_machine: StateMachine,
         audio_recorder: AudioRecorder,
         video_recorder: VideoRecorder,
+        media_muxer: MediaMuxer,
         pir_pin: int = 17,
         audio_output_path: str = "recordings/audio.wav",
         video_output_path: str = "recordings/video.h264",
+        muxed_output_path: str = "recordings/capture.mp4",
     ) -> None:
         ## Guard Clause: Validate state machine instance
         if not isinstance(state_machine, StateMachine):
@@ -33,13 +36,20 @@ class Controller:
         if not isinstance(video_recorder, VideoRecorder):
             raise TypeError("video_recorder must be an instance of VideoRecorder")
 
+        ## Guard Clause: Validate media muxer instance
+        if not isinstance(media_muxer, MediaMuxer):
+            raise TypeError("media_muxer must be an instance of MediaMuxer")
+
         self._state_machine: StateMachine = state_machine
         self._audio_recorder: AudioRecorder = audio_recorder
         self._video_recorder: VideoRecorder = video_recorder
+        self._media_muxer: MediaMuxer = media_muxer
         self._audio_output_path: str = audio_output_path
         self._video_output_path: str = video_output_path
+        self._muxed_output_path: str = muxed_output_path
         self._last_audio_path: Optional[str] = None
         self._last_video_path: Optional[str] = None
+        self._last_muxed_path: Optional[str] = None
 
         self._detector: PirMotionDetector = PirMotionDetector(
             pin=pir_pin,
@@ -60,7 +70,6 @@ class Controller:
         self._audio_recorder.start_recording(self._audio_output_path)
         self._video_recorder.start_recording(self._video_output_path)
 
-
     def _handle_motion_stopped(self) -> None:
         ## Guard Clause: Only act when strictly RECORDING
         if self._state_machine.current_state != SystemState.RECORDING:
@@ -72,6 +81,24 @@ class Controller:
         self._last_video_path = self._video_recorder.stop_recording()
         self._state_machine.transition_to(SystemState.ALERTING)
 
+        ## Kick off background mux if both raw files are available
+        if self._last_audio_path and self._last_video_path:
+            self._media_muxer.mux(
+                audio_path=self._last_audio_path,
+                video_path=self._last_video_path,
+                output_path=self._muxed_output_path,
+                on_done=self._on_mux_complete,
+            )
+
+    def _on_mux_complete(self, muxed_path: Optional[str]) -> None:
+        ## Called by MediaMuxer background thread when muxing finishes
+        if muxed_path is None:
+            logging.error("Muxing failed — raw audio/video files are retained for manual recovery.")
+            return
+
+        self._last_muxed_path = muxed_path
+        logging.info(f"Mux complete — final clip ready at: {muxed_path}")
+
     def acknowledge_alert(self) -> bool:
         ## Guard Clause: Only acknowledge from ALERTING state
         if self._state_machine.current_state != SystemState.ALERTING:
@@ -79,10 +106,12 @@ class Controller:
             return False
 
         logging.info(
-            f"Alert acknowledged. Audio: {self._last_audio_path} | Video: {self._last_video_path}"
+            f"Alert acknowledged. Audio: {self._last_audio_path} | "
+            f"Video: {self._last_video_path} | Muxed: {self._last_muxed_path}"
         )
         self._last_audio_path = None
         self._last_video_path = None
+        self._last_muxed_path = None
         return self._state_machine.transition_to(SystemState.ARMED)
 
     def arm(self) -> bool:
@@ -117,4 +146,3 @@ class Controller:
     def shutdown(self) -> bool:
         logging.info("Shutting down system.")
         return self.disarm()
-

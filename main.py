@@ -10,6 +10,7 @@ from core.state_machine import StateMachine
 from core.controller import Controller
 from capture.audio_recorder import AudioRecorder
 from capture.video_recorder import VideoRecorder
+from capture.media_muxer import MediaMuxer
 
 ## Configure logging once, here, for the entire application
 logging.basicConfig(
@@ -29,6 +30,12 @@ def main() -> None:
     ## Ensure the recordings directory exists before any session starts
     settings.RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
 
+    ## Generate a single shared timestamp so all files for one session share the same stem
+    session_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    def _make_path(template: str) -> str:
+        return str(settings.RECORDINGS_DIR / template.format(timestamp=session_ts))
+
     ## Wire up the dependency graph
     state_machine = StateMachine()
     audio_recorder = AudioRecorder(
@@ -40,13 +47,17 @@ def main() -> None:
         height=settings.VIDEO_HEIGHT,
         framerate=settings.VIDEO_FRAMERATE,
     )
+    media_muxer = MediaMuxer()
+
     controller = Controller(
         state_machine=state_machine,
         audio_recorder=audio_recorder,
         video_recorder=video_recorder,
+        media_muxer=media_muxer,
         pir_pin=settings.PIR_GPIO_PIN,
-        audio_output_path=_build_output_path(settings.AUDIO_FILENAME_TEMPLATE),
-        video_output_path=_build_output_path(settings.VIDEO_FILENAME_TEMPLATE),
+        audio_output_path=_make_path(settings.AUDIO_FILENAME_TEMPLATE),
+        video_output_path=_make_path(settings.VIDEO_FILENAME_TEMPLATE),
+        muxed_output_path=_make_path(settings.MUXED_FILENAME_TEMPLATE),
     )
 
     ## Arm the system on startup
