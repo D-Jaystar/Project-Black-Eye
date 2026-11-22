@@ -1,0 +1,12 @@
+[Unit]
+Description=BlackEye Nightly Auto-Update
+Documentation=https://github.com/D-Jaystar/Project-Black-Eye
+
+[Service]
+Type=oneshot
+User=pi
+WorkingDirectory=/home/pi/Project-Black-Eye
+EnvironmentFile=/home/pi/Project-Black-Eye/.env
+ExecStart=/bin/bash /home/pi/Project-Black-Eye/update.sh
+StandardOutput=journal
+StandardError=journal

@@ -1,0 +1,15 @@
+[Unit]
+Description=BlackEye Nightly Auto-Update Timer
+
+[Timer]
+## Run every night at 03:00 (device local time)
+OnCalendar=*-*-* 03:00:00
+
+## Add a random delay up to 10 minutes to avoid all devices updating simultaneously
+RandomizedDelaySec=600
+
+## If the system was off at 03:00, run on next boot
+Persistent=true
+
+[Install]
+WantedBy=timers.target
