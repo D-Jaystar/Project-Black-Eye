@@ -1,5 +1,5 @@
 ## core/controller.py
-## Links hardware triggers to state transitions and manages the capture lifecycle.
+## Links hardware triggers to state transitions and manages the full capture lifecycle.
 
 import logging
 from typing import Optional
@@ -8,10 +8,11 @@ from detector.pir_sensor import PirMotionDetector
 from capture.audio_recorder import AudioRecorder
 from capture.video_recorder import VideoRecorder
 from capture.media_muxer import MediaMuxer
+from notifier.telegram_bot import TelegramNotifier
 
 
 class Controller:
-    ## Orchestrates state transitions, sensor input, audio+video capture, and muxing lifecycle.
+    ## Orchestrates state transitions, sensor input, audio+video capture, muxing, and alerting.
 
     def __init__(
         self,
@@ -19,6 +20,7 @@ class Controller:
         audio_recorder: AudioRecorder,
         video_recorder: VideoRecorder,
         media_muxer: MediaMuxer,
+        notifier: TelegramNotifier,
         pir_pin: int = 17,
         audio_output_path: str = "recordings/audio.wav",
         video_output_path: str = "recordings/video.h264",
@@ -40,10 +42,15 @@ class Controller:
         if not isinstance(media_muxer, MediaMuxer):
             raise TypeError("media_muxer must be an instance of MediaMuxer")
 
+        ## Guard Clause: Validate notifier instance
+        if not isinstance(notifier, TelegramNotifier):
+            raise TypeError("notifier must be an instance of TelegramNotifier")
+
         self._state_machine: StateMachine = state_machine
         self._audio_recorder: AudioRecorder = audio_recorder
         self._video_recorder: VideoRecorder = video_recorder
         self._media_muxer: MediaMuxer = media_muxer
+        self._notifier: TelegramNotifier = notifier
         self._audio_output_path: str = audio_output_path
         self._video_output_path: str = video_output_path
         self._muxed_output_path: str = muxed_output_path
@@ -70,6 +77,9 @@ class Controller:
         self._audio_recorder.start_recording(self._audio_output_path)
         self._video_recorder.start_recording(self._video_output_path)
 
+        ## Notify owner that recording has started
+        self._notifier.send_alert("🚨 <b>BlackEye</b>: Motion detected — recording started.")
+
     def _handle_motion_stopped(self) -> None:
         ## Guard Clause: Only act when strictly RECORDING
         if self._state_machine.current_state != SystemState.RECORDING:
@@ -94,10 +104,20 @@ class Controller:
         ## Called by MediaMuxer background thread when muxing finishes
         if muxed_path is None:
             logging.error("Muxing failed — raw audio/video files are retained for manual recovery.")
+            self._notifier.send_alert(
+                "⚠️ <b>BlackEye</b>: Motion clip recorded but muxing failed. "
+                "Raw files are intact on device."
+            )
             return
 
         self._last_muxed_path = muxed_path
         logging.info(f"Mux complete — final clip ready at: {muxed_path}")
+
+        ## Send the finished clip to the owner via Telegram
+        self._notifier.send_alert(
+            "✅ <b>BlackEye</b>: Motion clip ready — see attached video.",
+            video_path=muxed_path,
+        )
 
     def acknowledge_alert(self) -> bool:
         ## Guard Clause: Only acknowledge from ALERTING state

@@ -1,0 +1,26 @@
+[Unit]
+Description=BlackEye Surveillance System
+Documentation=https://github.com/D-Jaystar/Project-Black-Eye
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/Project-Black-Eye
+
+# Load environment variables from the .env file
+EnvironmentFile=/home/pi/Project-Black-Eye/.env
+
+ExecStart=/usr/bin/python3 main.py
+
+# Restart automatically if the process crashes
+Restart=on-failure
+RestartSec=10
+
+# Log to systemd journal (view with: journalctl -u blackeye -f)
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

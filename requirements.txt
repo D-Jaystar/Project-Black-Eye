@@ -1,0 +1,17 @@
+# BlackEye — Python Dependencies
+# Install on Raspberry Pi with: pip install -r requirements.txt
+
+# GPIO control via hardware interrupts (AM312 PIR sensor)
+gpiozero
+
+# Audio capture to WAV
+sounddevice
+soundfile
+
+# Camera capture via libcamera (Raspberry Pi only)
+# On Pi: already included with Raspberry Pi OS — no pip install needed
+# On dev machine: stub mode is used automatically (import guarded in video_recorder.py)
+picamera2
+
+# Note: Telegram notifications use only Python stdlib (urllib) — no extra package needed.
+# Note: FFmpeg (media_muxer.py) is a system package: sudo apt install ffmpeg

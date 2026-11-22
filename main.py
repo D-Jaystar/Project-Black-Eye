@@ -11,19 +11,13 @@ from core.controller import Controller
 from capture.audio_recorder import AudioRecorder
 from capture.video_recorder import VideoRecorder
 from capture.media_muxer import MediaMuxer
+from notifier.telegram_bot import TelegramNotifier
 
 ## Configure logging once, here, for the entire application
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL, logging.INFO),
     format=settings.LOG_FORMAT,
 )
-
-
-def _build_output_path(template: str) -> str:
-    ## Resolve filename template by injecting the current timestamp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = template.format(timestamp=timestamp)
-    return str(settings.RECORDINGS_DIR / filename)
 
 
 def main() -> None:
@@ -34,10 +28,12 @@ def main() -> None:
     session_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     def _make_path(template: str) -> str:
+        ## Resolve filename template by injecting the session timestamp
         return str(settings.RECORDINGS_DIR / template.format(timestamp=session_ts))
 
     ## Wire up the dependency graph
     state_machine = StateMachine()
+
     audio_recorder = AudioRecorder(
         sample_rate=settings.AUDIO_SAMPLE_RATE,
         channels=settings.AUDIO_CHANNELS,
@@ -49,11 +45,15 @@ def main() -> None:
     )
     media_muxer = MediaMuxer()
 
+    ## TelegramNotifier reads credentials from environment variables at runtime
+    notifier = TelegramNotifier.from_env()
+
     controller = Controller(
         state_machine=state_machine,
         audio_recorder=audio_recorder,
         video_recorder=video_recorder,
         media_muxer=media_muxer,
+        notifier=notifier,
         pir_pin=settings.PIR_GPIO_PIN,
         audio_output_path=_make_path(settings.AUDIO_FILENAME_TEMPLATE),
         video_output_path=_make_path(settings.VIDEO_FILENAME_TEMPLATE),
